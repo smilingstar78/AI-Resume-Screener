@@ -1,77 +1,37 @@
 from pypdf import PdfReader
-import spacy
+from sentence_transformers import SentenceTransformer, util
 
-# Load spaCy model
-nlp = spacy.load("en_core_web_sm")
-
-
-# Extract PDF text
-pdf = PdfReader("MY_CV.pdf")
-
-data = ""
-
-for page in pdf.pages:
-    text = page.extract_text()
-
-    if text:
-        data += text + "\n"
+# Load real AI model (this is the key upgrade)
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-# NLP processing
-doc = nlp(data.lower())
+# ---------------- PDF TEXT ----------------
+def extract_text_from_pdf(pdf_path):
+    pdf = PdfReader(pdf_path)
+    text = ""
+
+    for page in pdf.pages:
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text + "\n"
+
+    return text
 
 
-# Clean tokens
-clean_tokens = []
+# ---------------- SCORE (REAL AI) ----------------
+def get_match_score(resume_text, job_text):
+    resume_embedding = model.encode(resume_text, convert_to_tensor=True)
+    job_embedding = model.encode(job_text, convert_to_tensor=True)
 
-for token in doc:
+    score = util.cos_sim(resume_embedding, job_embedding)[0][0]
 
-    if (
-        not token.is_stop
-        and not token.is_punct
-        and not token.is_space
-    ):
-        clean_tokens.append(token.lemma_)
+    return float(score) * 100
 
 
-# Convert tokens back to string
-resume_text = " ".join(clean_tokens)
+# ---------------- ANALYZE ----------------
+def analyze_resume(pdf_path, job_description):
+    resume_text = extract_text_from_pdf(pdf_path)
 
+    score = get_match_score(resume_text, job_description)
 
-# Skills database
-skills_db = {
-    "python",
-    "sql",
-    "tensorflow",
-    "pytorch",
-    "machine learning",
-    "deep learning",
-    "pandas",
-    "numpy",
-    "scikit learn",
-    "flask",
-    "fastapi",
-    "docker",
-    "git"
-}
-
-
-# Find available skills
-available = []
-
-for skill in skills_db:
-
-    if skill in resume_text:
-        available.append(skill)
-
-
-# Results
-print("Skills found:")
-print(available)
-
-
-# Basic screening
-if len(available) >= 5:
-    print("Suitable for this Role!")
-else:
-    print("Not Suitable!")
+    return score
