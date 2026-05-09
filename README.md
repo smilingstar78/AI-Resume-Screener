@@ -259,15 +259,6 @@ Scale hiring workflows.
 
 ---
 
-# 📸 Demo
-
-Add screenshots here.
-
-```bash
-screenshots/demo.png
-```
-
----
 
 # 🤝 Contributing
 
